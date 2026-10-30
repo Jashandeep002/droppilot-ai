@@ -1,0 +1,172 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DropPilot AI</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1020;color:#f5f7ff;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif}
+header{padding:22px 18px;background:#141c32;border-bottom:1px solid #29334b}
+h1{font-size:26px;margin:0}
+p{color:#aebbd1;line-height:1.5}
+main{max-width:900px;margin:auto;padding:18px}
+.card{background:#172139;border:1px solid #2b3855;border-radius:16px;padding:18px;margin-bottom:16px}
+h2{font-size:19px;margin-top:0}
+input,select,textarea{width:100%;background:#0e162a;color:white;border:1px solid #42516d;border-radius:10px;padding:12px;margin:6px 0 12px;font-size:16px}
+button{background:#735cff;color:white;border:0;border-radius:10px;padding:12px 16px;font-size:15px;font-weight:600;margin:4px 4px 4px 0}
+button.secondary{background:#33415d}
+.item{padding:12px 0;border-bottom:1px solid #35405a}
+.small{font-size:13px;color:#9daac2}
+.stat{font-size:27px;font-weight:700;color:#8cf0c4}
+nav{display:flex;gap:8px;overflow-x:auto;padding:14px 18px}
+nav button{white-space:nowrap}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+<h1>🚀 DropPilot AI</h1>
+<p>Your dropshipping business dashboard</p>
+</header>
+<nav>
+<button onclick="show('dashboard')">Dashboard</button>
+<button onclick="show('products')">Products</button>
+<button onclick="show('marketing')">Marketing</button>
+<button onclick="show('orders')">Orders</button>
+</nav>
+<main>
+<section id="dashboard">
+<div class="card">
+<h2>Business overview</h2>
+<p>Products saved</p><div class="stat" id="productCount">0</div>
+<p>Orders recorded</p><div class="stat" id="orderCount">0</div>
+<p class="small">Local dashboard data. Not connected to a live store.</p>
+</div>
+<div class="card">
+<h2>Profit calculator</h2>
+<label>Sale price ($)</label><input id="sale" type="number" value="29.99" min="0" step=".01">
+<label>Supplier cost ($)</label><input id="cost" type="number" value="10" min="0" step=".01">
+<label>Shipping cost ($)</label><input id="shipping" type="number" value="4" min="0" step=".01">
+<label>Other fees / ads ($)</label><input id="fees" type="number" value="3" min="0" step=".01">
+<button onclick="calculate()">Calculate profit</button>
+<div class="stat" id="profit">$12.99</div>
+<p id="margin"></p>
+</div>
+</section>
+<section id="products" class="hidden">
+<div class="card">
+<h2>Add a product</h2>
+<input id="pname" placeholder="Product name">
+<input id="pprice" type="number" placeholder="Selling price" min="0" step=".01">
+<input id="pcost" type="number" placeholder="Supplier cost" min="0" step=".01">
+<input id="plink" placeholder="Supplier product URL (optional)">
+<button onclick="addProduct()">Save product</button>
+</div>
+<div class="card"><h2>Your products</h2><div id="productList"></div></div>
+</section>
+<section id="marketing" class="hidden">
+<div class="card">
+<h2>Marketing caption generator</h2>
+<p class="small">Template-based generator. Live AI integration comes later.</p>
+<input id="mname" placeholder="Product name">
+<input id="mbenefit" placeholder="Main benefit">
+<select id="mstyle">
+<option value="friendly">Friendly</option>
+<option value="bold">Bold</option>
+<option value="simple">Simple</option>
+</select>
+<button onclick="generate()">Generate caption</button>
+<textarea id="caption" rows="6" placeholder="Your caption appears here"></textarea>
+<button class="secondary" onclick="copyCaption()">Copy caption</button>
+</div>
+</section>
+<section id="orders" class="hidden">
+<div class="card">
+<h2>Manual order tracker</h2>
+<p class="small">Test entries only. This does not place supplier orders.</p>
+<input id="customer" placeholder="Customer or order reference">
+<input id="orderProduct" placeholder="Product">
+<input id="amount" type="number" min="0" step=".01" placeholder="Order amount">
+<button onclick="addOrder()">Add order</button>
+</div>
+<div class="card"><h2>Recorded orders</h2><div id="orderList"></div></div>
+</section>
+</main>
+<script>
+const key="droppilot-v1";
+let data;
+try{data=JSON.parse(localStorage.getItem(key))||{}}
+catch(e){data={}}
+data.products=Array.isArray(data.products)?data.products:[];
+data.orders=Array.isArray(data.orders)?data.orders:[];
+function save(){localStorage.setItem(key,JSON.stringify(data));render()}
+function show(id){
+document.querySelectorAll("main section").forEach(s=>s.classList.add("hidden"));
+document.getElementById(id).classList.remove("hidden");
+}
+function money(n){return "$"+Number(n).toFixed(2)}
+function calculate(){
+let s=Number(sale.value),c=Number(cost.value),sh=Number(shipping.value),f=Number(fees.value);
+let n=s-c-sh-f;
+profit.textContent=money(n);
+margin.textContent=s>0?"Estimated margin: "+(n/s*100).toFixed(1)+"%":"Enter a sale price";
+}
+function addProduct(){
+let name=pname.value.trim(),price=Number(pprice.value),cost=Number(pcost.value);
+if(!name||!pprice.value||!pcost.value||price<0||cost<0){alert("Enter valid product details");return}
+data.products.push({name,price,cost,url:plink.value.trim()});
+pname.value=pprice.value=pcost.value=plink.value="";
+save();
+}
+function addOrder(){
+let name=customer.value.trim(),product=orderProduct.value.trim(),value=Number(amount.value);
+if(!name||!product||!amount.value||value<0){alert("Enter valid order details");return}
+data.orders.push({name,product,value,status:"Pending"});
+customer.value=orderProduct.value=amount.value="";
+save();
+}
+function generate(){
+let n=mname.value.trim(),b=mbenefit.value.trim();
+if(!n){alert("Enter a product name");return}
+let style=mstyle.value;
+caption.value=style==="bold"
+?"Meet "+n+"! 🔥 "+b+". Discover it today! #Shopping #NewFinds"
+:style==="simple"
+?n+" — "+b+". Explore the details and see if it's right for you."
+:"Looking for something useful? ✨ Meet "+n+"! "+b+". Take a look! #ProductFinds";
+}
+async function copyCaption(){
+try{await navigator.clipboard.writeText(caption.value);alert("Copied")}
+catch(e){caption.select();alert("Select and copy the caption")}
+}
+function render(){
+productCount.textContent=data.products.length;
+orderCount.textContent=data.orders.length;
+productList.replaceChildren();
+orderList.replaceChildren();
+data.products.forEach((p,i)=>{
+let d=document.createElement("div");d.className="item";
+d.textContent=p.name+" — "+money(p.price)+" | Cost "+money(p.cost)+" ";
+let b=document.createElement("button");b.textContent="Delete";b.className="secondary";
+b.onclick=()=>{data.products.splice(i,1);save()};
+d.appendChild(b);productList.appendChild(d);
+});
+data.orders.forEach((o,i)=>{
+let d=document.createElement("div");d.className="item";
+let t=document.createElement("p");t.textContent=o.name+" — "+o.product+" — "+money(o.value);
+let s=document.createElement("select");
+["Pending","Processing","Shipped","Delivered","Cancelled"].forEach(v=>{
+let opt=document.createElement("option");opt.value=v;opt.textContent=v;s.appendChild(opt);
+});
+s.value=o.status;s.onchange=()=>{o.status=s.value;save()};
+let b=document.createElement("button");b.textContent="Delete";b.className="secondary";
+b.onclick=()=>{data.orders.splice(i,1);save()};
+d.append(t,s,b);orderList.appendChild(d);
+});
+}
+render();calculate();
+</script>
+</body>
+</html>
